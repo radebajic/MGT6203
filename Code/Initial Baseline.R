@@ -10,9 +10,9 @@ model = HoltWinters(a,seasonal = 'additive')
 model$SSE
 model$fitted
 
-plot(date,a, col = 'red') #Plot the original data in red
+plot(date,a, col = 'red', , type = "l", ylab = 'Agricultural raw materials index',xlab = 'Year') #Plot the original data in red
 
 b = data.frame(model$fitted)  #Convert the results of the smoothing into a data frame
-points(date[13:length(date)],b$xhat, col = 'green') # plot the smoothing data in green
+lines(date[13:length(date)],b$xhat, col = 'green') # plot the smoothing data in green
 
-
+legend(4000,160,legend=c('Real data','Fitted data'),col=c('red','green'),pch = c('-','-'))
