@@ -25,5 +25,5 @@ df11 = df1 %>%
 p = merge(df11,df2,by = 'Date')
 
 
-model = grangertest(p$AVPRCP,p$Soybean.Meal, order = 3)
+model = grangertest(p$AVPRCP,p$Soybean.Meal, order = 12)
 model
