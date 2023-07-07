@@ -48,3 +48,8 @@ df <- merge(df, data_weather_filt, by='Date') # merged dataset for analysis
 colnames(df) <- gsub("\\.", "_", colnames(df))
 column_names <- names(df)
 print(column_names) # 1 = Date, 2:55 = Commodity Prices, 56:62 = Macro inputs, 63:110 = Average temeratures by state
+
+### LM test
+predictors <- df[, (which(names(df)=='CPI')):ncol(df)] # define all macro and weather variables
+model <- lm(Beef ~ ., data=cbind(df['Beef'], predictors)) # adjust the dependent variable for an overview of the significance
+summary(model)
