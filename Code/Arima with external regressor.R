@@ -1,0 +1,31 @@
+library(lmtest)
+library(stats)
+library(dplyr)
+library(lubridate)
+library(tidyverse)
+library(forecast)
+
+d = read.csv('Central park.csv')
+d2 = read.csv('commodity-prices-2016.csv')
+
+d$DATE = paste(as.character(d$DATE),"-01",sep="") #Convert month to first date of the month
+
+d2$Date = as.Date(d2$Date)  #Change to date type
+d$DATE = as.Date(d$DATE)  #Change to date type
+
+df1 = subset(d, select = c(DATE,TMIN)) #Create dataframe with relevant data from weather dataframe
+df2 = subset(d2, select = c(Date,Fuel.Energy.Index)) #Create dataframe with relevant data from price dataframe
+
+df11 = df1 %>% 
+  group_by(Date= lubridate::floor_date(DATE, 'month')) %>%
+  summarize(AVTMIN = mean(TMIN))  #Convert the weather data to average precipitations per month
+
+
+p = merge(df11,df2,by = 'Date')
+
+fit = Arima(p$Fuel.Energy.Index,xreg = p$AVTMIN, order=c(0,0,1))
+fit
+
+
+plot(p$Fuel.Energy.Index,col="red", type = "l",ylab = 'Fuel price index',xlab = 'Months since january 1980')
+lines(fitted(fit),col="blue")
