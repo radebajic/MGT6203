@@ -28,9 +28,11 @@ p = merge(df11,df2,by = 'Date')
 fit = Arima(p$Soybean.Meal,xreg = p$AVTMIN, order=c(1,1,0))
 fit
 
-
 plot(p$Date,p$Soybean.Meal,col="red", type = "l",ylab = 'Fuel price index',xlab = 'Date')
 lines(p$Date,fitted(fit),col="blue")
 
 fit2 = Arima(p$Soybean.Meal, order=c(1,1,0))
 fit2
+
+fit3 = auto.arima(p$Soybean.Meal,xreg = p$AVTMIN)
+fit3
