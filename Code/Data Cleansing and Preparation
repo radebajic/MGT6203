@@ -49,6 +49,25 @@ colnames(df) <- gsub("\\.", "_", colnames(df))
 column_names <- names(df)
 print(column_names) # 1 = Date, 2:55 = Commodity Prices, 56:62 = Macro inputs, 63:110 = Average temeratures by state
 
+## Average the US Temperature
+df$USA_Avg_Temp <- rowMeans(df[, 63:110], na.rm=TRUE) #average all states together
+df <- df[, -c(63:110)]
+
+## Correlation Analysis
+#colnames(df)
+dependent_vars <- df[, -c(56:63)] # exclude the predictors
+predictor_vars <- df[, c(56:63)] # exclude the dependent variables 
+dependent_vars <- dependent_vars[, !colnames(dependent_vars) %in% "Date"] #for correlation analysis exclude the date
+dependent_vars_10 <- dependent_vars[, c(1:10)] # create several parts, as it is easier to look at
+dependent_vars_20 <- dependent_vars[, c(11:20)]
+dependent_vars_30 <- dependent_vars[, c(21:30)]
+dependent_vars_40 <- dependent_vars[, c(31:40)]
+dependent_vars_50 <- dependent_vars[, c(41:50)]
+dependent_vars_60 <- dependent_vars[, c(51:54)]
+
+cor_matrix_10 <- cor(dependent_vars_10, predictor_vars, use = "complete.obs")
+corrplot(cor_matrix_10, method = "color", type = "upper", tl.cex = 0.7)
+
 ### LM test
 predictors <- df[, (which(names(df)=='CPI')):ncol(df)] # define all macro and weather variables
 model <- lm(Beef ~ ., data=cbind(df['Beef'], predictors)) # adjust the dependent variable for an overview of the significance
