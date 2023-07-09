@@ -78,7 +78,7 @@ ggplot(melted_correlation, aes(Var1, Var2, fill = value)) +
 # ARIMA for variable with a highest correlation
 # let's analyze the "Beef" commodity prices
 beverage_prices <- df$Beverage_Price_Index
-arima_model <- auto.arima(beef_prices)
+arima_model <- auto.arima(df$Beef)
 print(arima_model)
 
 # Principal Component Analysis (PCA)
