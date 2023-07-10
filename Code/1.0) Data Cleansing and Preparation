@@ -66,9 +66,20 @@ dependent_vars_50 <- dependent_vars[, c(41:50)]
 dependent_vars_60 <- dependent_vars[, c(51:54)]
 
 cor_matrix_10 <- cor(dependent_vars_10, predictor_vars, use = "complete.obs")
-corrplot(cor_matrix_10, method = "color", type = "upper", tl.cex = 0.7)
+corrplot(cor_matrix_10, method = "color", type = "full", tl.cex = 0.7)
 
-### LM test
-predictors <- df[, (which(names(df)=='CPI')):ncol(df)] # define all macro and weather variables
-model <- lm(Beef ~ ., data=cbind(df['Beef'], predictors)) # adjust the dependent variable for an overview of the significance
-summary(model)
+cor_matrix_20 <- cor(dependent_vars_20, predictor_vars, use = "complete.obs")
+corrplot(cor_matrix_20, method = "color", type = "full", tl.cex = 0.7)
+
+cor_matrix_30 <- cor(dependent_vars_30, predictor_vars, use = "complete.obs")
+corrplot(cor_matrix_30, method = "color", type = "full", tl.cex = 0.7)
+
+cor_matrix_40 <- cor(dependent_vars_40, predictor_vars, use = "complete.obs")
+corrplot(cor_matrix_40, method = "color", type = "full", tl.cex = 0.7)
+
+cor_matrix_50 <- cor(dependent_vars_50, predictor_vars, use = "complete.obs")
+corrplot(cor_matrix_50, method = "color", type = "full", tl.cex = 0.7)
+
+cor_matrix_60 <- cor(dependent_vars_60, predictor_vars, use = "complete.obs")
+corrplot(cor_matrix_60, method = "color", type = "full", tl.cex = 0.7)
+
