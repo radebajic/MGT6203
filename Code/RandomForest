@@ -1,0 +1,26 @@
+#### start with the cleaned and merged 'df' ####
+
+## ------------ Random Forest approach --------------- ##
+dependent_vars <- df[, -c(56:63)] # exclude the predictors
+predictor_vars <- df[, c(56:63)] # exclude the dependent variables 
+
+dependent_names <- names(dependent_vars) # store column names for iteration
+error_rates <- vector(length= length(dependent_names)) # create empty vector to store error rates
+
+for (i in 1:length(dependent_names)) {
+  y <- data.frame(y = df[[dependent_names[i]]])
+  y <- data.frame(y = diff(y$y)) # consider only price movements
+  y$movement_indicator <- as.factor(ifelse(y$y >0, 1, 0)) #introduce the indicator if prices went up or down compared to last month.
+  x <- df[-1, c(56:63)] # exclude the dependent variables and exclude the first row
+  model <- randomForest(x = x, y = y$movement_indicator)# Fit the random forest model
+  error_rates[i] <- model$err.rate[nrow(model$err.rate), "OOB"]
+}
+
+# Print the error rates for each dependent variable
+for (i in 1:length(dependent_names)) {
+  print(paste(dependent_names[i], error_rates[i]))
+}
+
+### We identified that 'Coal', 'Uranium' and 'Poultry' showed the lowest error rates between 14-27%. Analyzing those variables revealed that prices are not very volatile. 
+### This means that the price_movements are imbalanced as there are many 0 (i.e. price stayed the same or decreased the next month) and it was rather easy for the model to predict 0. 
+### We conclude that RandomForest is not a good choice for predicting price movements, and we will not further investigate the model.
