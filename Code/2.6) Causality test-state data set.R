@@ -21,7 +21,18 @@ df2 = subset(d2, select = c(Date,Soybean.Meal)) #Create dataframe with relevant 
 
 p = merge(df1,df2,by = 'Date')
 
-model = grangertest(p$Soybean.Meal~p$average_temp, order = 3)
-model
+p_value = c()
+month_order = c()
+
+for (i in 1:15){
+model = grangertest(p$Soybean.Meal~p$average_temp, order = i)
+#print(i)
+#print(model)
+month_order = c(month_order,i)
+p_value = c(p_value,model$`Pr(>F)`[2])
+}
+
+plot(month_order,p_value,ylab = 'p value', xlab = 'Months of lag', main = 'Causality soybean meal price based on temperature in Illinois')
+
 
 

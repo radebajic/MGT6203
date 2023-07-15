@@ -20,9 +20,21 @@ df2 = subset(d2, select = c(Date,Wheat)) #Create dataframe with relevant data fr
 
 
 p = merge(df1,df2,by = 'Date')
+
+p_value = c()
+month_order = c()
+
 for (i in 1:15){
 model = grangertest(p$Wheat~p$average_temp, order = i)
-print(i)
-print(model)}
+#print(i)
+#print(model$`Pr(>F)`[2])
+month_order = c(month_order,i)
+p_value = c(p_value,model$`Pr(>F)`[2])
+}
+
+plot(month_order,p_value,ylab = 'p value', xlab = 'Months of lag', main = 'Causality wheat price based on temperature')
+
+
+
 
 
