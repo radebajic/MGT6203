@@ -1,3 +1,4 @@
+### THE CODE IS BASED ON THE CLEANED DATAFRAME CREATED IN: 1.0) Data Cleansing and Preparation ###
 
 #### Data Inspection and ADF TEST ####
 any_negative <- any(df < 0) #chekc for null or negative values which would distort log
