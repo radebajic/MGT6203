@@ -1,0 +1,67 @@
+
+#### Data Inspection and ADF TEST ####
+any_negative <- any(df < 0) #chekc for null or negative values which would distort log
+any_null <- any(is.null(df) | is.na(df)) #chekc for null or negative values which would distort log
+
+# start with the cleaned and prepared df
+dependent_vars <- data.frame(soybeans = df$Soybeans, corn = df$Maize_corn) # start with soybeans as it's the second largest crop grown in the US (after corn)
+predictor_vars <- df[, c(56:63)] # exclude the dependent variables 
+head(dependent_vars)
+
+vars <- predictor_vars
+vars <- cbind(date = df$Date,soybeans = dependent_vars$soybeans, corn = dependent_vars$corn, vars)
+head(vars)
+
+# Convert Y to a time series object
+ts_corn <- ts(vars$corn,  start = c(1980, 11), frequency = 12)
+plot(ts_corn, ylab = 'USD per metric ton', main = 'Corn Prices')
+
+# Convert Weather to a time series object
+ts <- ts(vars$USA_Avg_Temp,  start = c(1980, 11), frequency = 12)
+plot(ts, ylab = 'Degrees Farenheit', main='USA Average Temperatures')
+
+# Perform the ADF test
+adf_result <- adf.test(ts_corn, k = trunc((length(ts_corn)-3)^(1/4)))
+print(adf_result)
+adf_result$p.value
+
+# Create an empty data frame to store the results
+adf_results <- data.frame(Variable = character(), TestStatistic = numeric(), p_value = numeric(), stringsAsFactors = FALSE)
+
+# Loop through each variable in the 'vars' dataset
+for (col in colnames(vars)) {
+  # Convert the variable into a time series object
+  ts_data <- ts(vars[[col]],start = c(1980, 11), frequency = 12)
+  
+  # Perform the ADF test
+  adf_result <- adf.test(ts_data, alternative = "stationary")
+  
+  # Extract the test statistics and p-value
+  test_statistic <- adf_result$statistic
+  p_value <- adf_result$p.value
+  
+  # Add the results to the data frame
+  adf_results <- adf_results %>% 
+    add_row(Variable = col, TestStatistic = test_statistic, p_value = p_value)
+}
+
+# Print the table of results
+print(adf_results)
+
+# Create table for report
+#install.packages('knitr')
+#install.packages('kableExtra')
+library(knitr)
+library(kableExtra)
+
+# Convert p-values to formatted character strings
+adf_results$p_value <- sprintf("%.8f", adf_results$p_value)
+
+# Create the table using kable()
+table_output <- kable(adf_results, align = "c") %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE)
+
+# Print the table
+print(table_output)
+
+#### END DATA INSPECTION AND ADF TEST ####
