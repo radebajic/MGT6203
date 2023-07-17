@@ -1,0 +1,48 @@
+### THE CODE IS BASED ON 1.10) Data Inspection and ADF Test ###
+
+## ------------ TRANSORM DATA FOR DEEP LEARNING APPROACH --------------- ##
+library(dplyr)
+head(vars)
+vars_nonstationary <-  select(vars, corn, CPI, Unemp_rate, NASDAQ, disposable_income, Personal_consumption_expenditure, personal_savings) # those have to be transformed
+vars_stationary <- select(vars, Mortgage_rate, USA_Avg_Temp) # vars ready for model, but need timing adjustment because of the non-stationary variables which will lose their first row in the process
+
+### create the first difference of the logarithmized series ###
+# Create an empty dataframe to store the first differences
+vars_diff <- data.frame(matrix(ncol = ncol(vars_nonstationary), nrow = nrow(vars_nonstationary)-1))
+# Loop through each variable in vars_nonstationary
+for (col_name in colnames(vars_nonstationary)) {
+  # Convert column to a time series object
+  ts_col <- ts(vars_nonstationary[[col_name]], start = c(1980, 11), frequency = 12)
+  
+  # Calculate the first difference of the logarithmized series
+  diff_series <- diff(log(ts_col))
+  
+  # Assign the differenced series to the new dataframe, excluding the first row
+  vars_diff[[paste0(col_name, "_diff")]] <- diff_series
+}
+vars_diff <- vars_diff %>%
+  select(contains('_diff'))
+head(vars_diff)
+
+# Check if the diff is correctly calculated by taking one example
+#log_ts_corn <- log(ts_corn)
+#diff_log_ts_corn <- diff(log_ts_corn)
+#plot(diff_log_ts_corn, ylab = 'First difference', main = 'First Difference of Log(Corn Prices)')
+plot(vars_diff$corn_diff, ylab = 'First difference', main = 'First Difference of Log(Corn Prices)')
+
+### transform stationary data to time series ###
+# Create an empty dataframe to store the transformed time series
+ts_vars_stationary <- data.frame(matrix(ncol = ncol(vars_stationary), nrow = nrow(vars_stationary)-1))
+# Set the column names of vars_ts
+colnames(ts_vars_stationary) <- colnames(vars_stationary)
+
+# Loop through each column in vars_stationary
+for (i in 1:ncol(vars_stationary)) {
+  # Convert column to a time series object
+  ts_vars_stationary[, i] <- ts(vars_stationary[-1, i],start = c(1980, 11), frequency = 12)
+}
+
+# View the resulting dataframe
+str(ts_vars_stationary)
+
+## ------------ END TRANSORM DATA FOR DEEP LEARNING APPROACH --------------- ##
