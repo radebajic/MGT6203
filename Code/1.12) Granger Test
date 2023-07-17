@@ -1,4 +1,4 @@
-
+### THE CODE IS BASED ON 1.11) Transform Data for Deep Learning Approach ###
 
 ## ------------ START TEST FOR CAUSALITY --------------- ##
 head(vars_diff) 
