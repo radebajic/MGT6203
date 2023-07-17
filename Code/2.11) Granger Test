@@ -1,0 +1,74 @@
+
+
+## ------------ START TEST FOR CAUSALITY --------------- ##
+head(vars_diff) 
+head(ts_vars_stationary)
+nrow(ts_vars_stationary) # this has one row more, because no transformation happened, hence we have to delete the first row
+nrow(vars_diff) # this has one row less, because of the transformation
+vars_stationary_cleaned <- ts_vars_stationary[-1, ]
+df_clean <- cbind(vars_diff, ts_vars_stationary) #merge the transformed data with the stationary data
+str(df_clean)
+head(df_clean)
+
+## check correlation of data ##
+df_clean$interaction_ps_di_diff <- df_clean$personal_savings_diff * df_clean$disposable_income_diff # create interaction term
+df_clean <- df_clean[, -which(names(df_clean) == 'personal_savings_diff')]
+#install.packages("corrplot")
+library(corrplot)
+cor_matrix <- cor(df_clean)
+corrplot(cor_matrix, method = "color", type = "full", tl.cex = 0.7, main= 'Correlation Plot')
+
+## Granger test ##
+#install.packages('lmtest')
+library(lmtest) # load for granger test
+
+# Specify the lag orders to consider (months of lag)
+lag_orders <- c(1,3,6) # test for months of lag between predictors and dependent variable
+
+# Create empty vectors to store the outputs
+Variable <- character()
+Correlation <- numeric()
+p_value <- numeric()
+
+
+# Exclude the dependent variable from the loop
+vars_to_test <- df_clean[, colnames(df_clean) != "corn_diff"]
+# Loop through each variable in vars_to_test
+for (col_name in colnames(vars_to_test)) {
+  for (lag in lag_orders) {
+  # Perform the Granger causality test
+  granger_test <- grangertest(vars_to_test[, col_name], df_clean$corn_diff, order = lag)
+  
+  # Extract the p-value from the test result
+  p_value <- c(p_value, granger_test$`Pr(>F)`[2])
+  
+  # Calculate the correlation with corn_diff
+  Correlation <- c(Correlation, cor(vars_to_test[lag:nrow(df_clean), col_name], df_clean[1:(nrow(df_clean)-lag+1), "corn_diff"]))
+  
+  # Store the variable name
+  Variable <- c(Variable, paste(col_name, lag, sep = "_"))
+
+  }
+}
+
+
+# Combine the outputs into a dataframe
+granger_results <- data.frame(Variable, Correlation, p_value)
+granger_results$p_value <- round(granger_results$p_value, digits = 3)
+granger_results$Correlation <- round(granger_results$Correlation, digits = 3)
+
+# View the resulting dataframe
+granger_results
+
+# Create the table using kable
+library(knitr)
+library(kableExtra)
+table_output <- kable(granger_results, format = "html", align = "c") %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE) %>%
+  add_header_above(c('Granger Causality Test between Corn Prices and Predictors for Lage 1, 3 and 6 Months' =3))
+
+# Print the table
+print(table_output)
+
+
+## ------------ END TEST FOR CAUSALITY --------------- ##
