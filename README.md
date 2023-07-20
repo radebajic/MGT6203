@@ -2,7 +2,7 @@
  Team 9's group project GitHub repository for MGT 6203 (Edx) Summer of 2023 semester.
  Authors: Rade Bajic, Eddie Morrissey, Stijn Jorissen, Nurly Kuzdikbay, David Basler
 
- ![Logo Alt Text](GettyImages-1362911259.png)
+ ![Logo Alt Text](GettyImages-1362911259.jpg)
 
 
 ## Project Description:
