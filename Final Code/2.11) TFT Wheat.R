@@ -78,14 +78,14 @@ spec <- tft_dataset_spec(rec, train) %>%
   spec_covariate_index(date) %>%
   spec_covariate_key(Commodity) %>%
   spec_covariate_known(starts_with("date_")) %>%
-  spec_time_splits(lookback = 5*25, horizon = 3)
+  spec_time_splits(lookback = 5*35, horizon = 12)
 
 spec <- prep(spec)
 spec
 
 model <- temporal_fusion_transformer(
   spec,
-  hidden_state_size = 4,
+  hidden_state_size = 8,
   learn_rate = 1e-3,
   #dropout = 0.5,
   num_attention_heads = 1,
@@ -96,7 +96,7 @@ fitted <- model %>%
   fit(
     transform(spec),
     valid_data = transform(spec, new_data = valid),
-    epochs = 5,
+    epochs = 3,
       callbacks = list(
       luz::luz_callback_keep_best_model(monitor = "valid_loss"),
       luz::luz_callback_early_stopping(
@@ -124,7 +124,7 @@ as.data.frame(forecasts)
 
 options(repr.plot.width = 10, repr.plot.height =10)
 tt %>% 
-  filter(date > lubridate::ymd("2015-05-01")) %>% 
+  filter(date > lubridate::ymd("2015-01-01")) %>% 
   full_join(forecasts) %>% 
   #filter(Commodity == "Copper") %>% 
   ggplot(aes(x = date, y = Price)) +
