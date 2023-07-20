@@ -15,6 +15,7 @@ library(curl)
 library(data.table) 
 library(zoo) 
 
+#set torch options
 options(torch.threshold_call_gc = 6000)
 
 #read comodity prices and convert to proper format
