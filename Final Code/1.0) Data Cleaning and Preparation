@@ -1,0 +1,344 @@
+library(dplyr)
+library(lubridate)
+library(tidyverse)
+library(ggplot2)
+#library(forecast)
+library(reshape2)
+#install.packages("corrplot")
+library(corrplot)
+#install.packages("randomForest")
+library(randomForest)
+#install.packages("tseries")
+library(tseries) # for ADF test
+
+### Load datasets
+
+file_path <- "commodity-prices-2016.csv"
+data_commodity <- read.csv(file_path)
+head(data_commodity)
+
+file_path <- "average_monthly_temperature_by_state_1950-2022.csv"
+data_weather <- read.csv(file_path)
+head(data_weather)
+
+file_path <- "US_macroeconomics.csv"
+data_macro <- read.csv(file_path)
+head(data_macro)
+
+
+### Change to date type
+data_commodity$Date <- as.Date(data_commodity$Date)
+data_macro$Date <- as.Date(data_macro$date)
+data_weather$Date <- as.Date(paste(data_weather$year, data_weather$month, "01", sep='-'))
+
+### Clean Commodity dataset
+na_columns <- colSums(is.na(data_commodity)) >0 # there are 5-6 columns with NA values. As these seem not to be very important, we delete these columns
+# print(names(na_columns)[na_columns])
+data_commodity <- data_commodity[, !na_columns]
+data_commodity_filt <- data_commodity %>%
+  filter(Date >= as.Date('1980-11-01') & Date <= as.Date('2016-02-01')) 
+
+### Clean Weather dataset
+na_columns <- colSums(is.na(data_weather)) >0 # there are no NA values in the dataset
+#print(names(na_columns)[na_columns])
+data_weather <- data_weather[c('Date', 'state', 'average_temp')] #only keep relevant columns for analysis
+data_weather <- pivot_wider(data_weather, names_from = state, values_from = average_temp) # pivot states in columns
+data_weather_filt <- data_weather %>%
+  filter(Date >= as.Date('1980-11-01') & Date <= as.Date('2016-02-01')) 
+
+### Clean Macro dataset
+na_columns <- colSums(is.na(data_macro)) >0 # there are no NA values in the dataset
+#print(names(na_columns)[na_columns])
+data_macro <- data_macro[, -which(names(data_macro) == 'date')] #only keep relevant columns for analysis
+data_macro_filt <- data_macro %>%
+  filter(Date >= as.Date('1980-11-01') & Date <= as.Date('2016-02-01')) 
+
+### Merge datasets
+df <- merge(data_commodity_filt, data_macro_filt, by='Date')
+df <- merge(df, data_weather_filt, by='Date') # merged dataset for analysis
+colnames(df) <- gsub("\\.", "_", colnames(df))
+column_names <- names(df)
+print(column_names) # 1 = Date, 2:55 = Commodity Prices, 56:62 = Macro inputs, 63:110 = Average temeratures by state
+
+## Average the US Temperature
+df$USA_Avg_Temp <- rowMeans(df[, 63:110], na.rm=TRUE) #average all states together
+df <- df[, -c(63:110)]
+
+## Correlation Analysis
+#colnames(df)
+dependent_vars <- df[, -c(56:63)] # exclude the predictors
+predictor_vars <- df[, c(56:63)] # exclude the dependent variables 
+dependent_vars <- dependent_vars[, !colnames(dependent_vars) %in% "Date"] #for correlation analysis exclude the date
+dependent_vars_10 <- dependent_vars[, c(1:10)] # create several parts, as it is easier to look at
+dependent_vars_20 <- dependent_vars[, c(11:20)]
+dependent_vars_30 <- dependent_vars[, c(21:30)]
+dependent_vars_40 <- dependent_vars[, c(31:40)]
+dependent_vars_50 <- dependent_vars[, c(41:50)]
+dependent_vars_60 <- dependent_vars[, c(51:54)]
+
+cor_matrix_10 <- cor(dependent_vars_10, predictor_vars, use = "complete.obs")
+corrplot(cor_matrix_10, method = "color", type = "full", tl.cex = 0.7)
+
+cor_matrix_20 <- cor(dependent_vars_20, predictor_vars, use = "complete.obs")
+corrplot(cor_matrix_20, method = "color", type = "full", tl.cex = 0.7)
+
+cor_matrix_30 <- cor(dependent_vars_30, predictor_vars, use = "complete.obs")
+corrplot(cor_matrix_30, method = "color", type = "full", tl.cex = 0.7)
+
+cor_matrix_40 <- cor(dependent_vars_40, predictor_vars, use = "complete.obs")
+corrplot(cor_matrix_40, method = "color", type = "full", tl.cex = 0.7)
+
+cor_matrix_50 <- cor(dependent_vars_50, predictor_vars, use = "complete.obs")
+corrplot(cor_matrix_50, method = "color", type = "full", tl.cex = 0.7)
+
+cor_matrix_60 <- cor(dependent_vars_60, predictor_vars, use = "complete.obs")
+corrplot(cor_matrix_60, method = "color", type = "full", tl.cex = 0.7)
+
+## Create triple exponential smoothing Holt-Winters method ##
+dfts <- ts(df$Wheat, frequency=12, start= c(1980,11))
+components_dfts <- decompose(dfts)
+plot(components_dfts)
+
+## ------------ END OF DATA CLEANING AND PREPROCESSING --------------- ##
+## ------------ DATA INSPECTION AND ADF TEST --------------- ##
+any_negative <- any(df < 0) #chekc for null or negative values which would distort log
+any_null <- any(is.null(df) | is.na(df)) #chekc for null or negative values which would distort log
+
+# start with the cleaned and prepared df
+dependent_vars <- data.frame(soybeans = df$Soybeans, corn = df$Maize_corn) # start with soybeans as it's the second largest crop grown in the US (after corn)
+predictor_vars <- df[, c(56:63)] # exclude the dependent variables 
+head(dependent_vars)
+
+vars <- predictor_vars
+vars <- cbind(date = df$Date,soybeans = dependent_vars$soybeans, corn = dependent_vars$corn, vars)
+head(vars)
+
+# Convert Y to a time series object
+ts_corn <- ts(vars$corn,  start = c(1980, 11), frequency = 12)
+plot(ts_corn, ylab = 'USD per metric ton', main = 'Corn Prices')
+
+# Convert Weather to a time series object
+ts <- ts(vars$USA_Avg_Temp,  start = c(1980, 11), frequency = 12)
+plot(ts, ylab = 'Degrees Farenheit', main='USA Average Temperatures')
+
+# Perform the ADF test
+adf_result <- adf.test(ts_corn, k = trunc((length(ts_corn)-3)^(1/4)))
+print(adf_result)
+adf_result$p.value
+
+# Create an empty data frame to store the results
+adf_results <- data.frame(Variable = character(), TestStatistic = numeric(), p_value = numeric(), stringsAsFactors = FALSE)
+# Loop through each variable in the 'vars' dataset
+for (col in colnames(vars)) {
+  # Convert the variable into a time series object
+  ts_data <- ts(vars[[col]],start = c(1980, 11), frequency = 12)
+  
+  # Perform the ADF test
+  adf_result <- adf.test(ts_data, alternative = "stationary")
+  
+  # Extract the test statistics and p-value
+  test_statistic <- adf_result$statistic
+  p_value <- adf_result$p.value
+  
+  # Add the results to the data frame
+  adf_results <- adf_results %>% 
+    add_row(Variable = col, TestStatistic = test_statistic, p_value = p_value) %>%
+    filter(col!= 'date')
+}
+
+# Print the table of results
+print(adf_results)
+
+# Create table for report
+#install.packages('knitr')
+#install.packages('kableExtra')
+library(knitr)
+library(kableExtra)
+
+# Convert p-values to formatted character strings
+adf_results$p_value <- sprintf("%.8f", adf_results$p_value)
+
+# Create the table using kable()
+table_output <- kable(adf_results, align = "c") %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE) %>%
+  add_header_above(c('Augmented Dickey-Fuller-Test'=3))
+
+# Print the table
+print(table_output)
+
+## ------------ END DATA INSPECTION AND ADF TEST --------------- ##
+## ------------ TRANSORM DATA FOR DEEP LEARNING APPROACH --------------- ##
+library(dplyr)
+head(vars)
+vars_nonstationary <-  select(vars, corn, CPI, Unemp_rate, NASDAQ, disposable_income, Personal_consumption_expenditure, personal_savings) # those have to be transformed
+vars_stationary <- select(vars, Mortgage_rate, USA_Avg_Temp) # vars ready for model, but need timing adjustment because of the non-stationary variables which will lose their first row in the process
+
+### create the first difference of the logarithmized series ###
+# Create an empty dataframe to store the first differences
+vars_diff <- data.frame(matrix(ncol = ncol(vars_nonstationary), nrow = nrow(vars_nonstationary)-1))
+# Loop through each variable in vars_nonstationary
+for (col_name in colnames(vars_nonstationary)) {
+  # Convert column to a time series object
+  ts_col <- ts(vars_nonstationary[[col_name]], start = c(1980, 11), frequency = 12)
+  
+  # Calculate the first difference of the logarithmized series
+  diff_series <- diff(log(ts_col))
+  
+  # Assign the differenced series to the new dataframe, excluding the first row
+  vars_diff[[paste0(col_name, "_diff")]] <- diff_series
+}
+vars_diff <- vars_diff %>%
+  select(contains('_diff'))
+head(vars_diff)
+
+# Check if the diff is correctly calculated by taking one example
+#log_ts_corn <- log(ts_corn)
+#diff_log_ts_corn <- diff(log_ts_corn)
+#plot(diff_log_ts_corn, ylab = 'First difference', main = 'First Difference of Log(Corn Prices)')
+plot(vars_diff$corn_diff, ylab = 'First difference', main = 'First Difference of Log(Corn Prices)')
+
+### transform stationary data to time series ###
+# Create an empty dataframe to store the transformed time series
+ts_vars_stationary <- data.frame(matrix(ncol = ncol(vars_stationary), nrow = nrow(vars_stationary)-1))
+# Set the column names of vars_ts
+colnames(ts_vars_stationary) <- colnames(vars_stationary)
+
+# Loop through each column in vars_stationary
+for (i in 1:ncol(vars_stationary)) {
+  # Convert column to a time series object
+  ts_vars_stationary[, i] <- ts(vars_stationary[-1, i],start = c(1980, 11), frequency = 12)
+}
+
+# View the resulting dataframe
+str(ts_vars_stationary)
+
+## ------------ END TRANSORM DATA FOR DEEP LEARNING APPROACH --------------- ##
+## ------------ START TEST FOR CAUSALITY --------------- ##
+head(vars_diff) 
+head(ts_vars_stationary)
+nrow(ts_vars_stationary) # this has one row more, because no transformation happened, hence we have to delete the first row
+nrow(vars_diff) # this has one row less, because of the transformation
+vars_stationary_cleaned <- ts_vars_stationary[-1, ]
+df_clean <- cbind(vars_diff, ts_vars_stationary) #merge the transformed data with the stationary data
+str(df_clean)
+head(df_clean)
+
+## check correlation of data ##
+df_clean$interaction_ps_di_diff <- df_clean$personal_savings_diff * df_clean$disposable_income_diff # create interaction term
+df_clean <- df_clean[, -which(names(df_clean) == 'personal_savings_diff')]
+#install.packages("corrplot")
+library(corrplot)
+cor_matrix <- cor(df_clean)
+corrplot(cor_matrix, method = "color", type = "full", tl.cex = 0.7, main= 'Correlation Plot')
+
+## Granger test ##
+#install.packages('lmtest')
+library(lmtest) # load for granger test
+
+# Specify the lag orders to consider (months of lag)
+lag_orders <- c(1,3,6) # test for months of lag between predictors and dependent variable
+
+# Create empty vectors to store the outputs
+Variable <- character()
+Correlation <- numeric()
+p_value <- numeric()
+
+
+# Exclude the dependent variable from the loop
+vars_to_test <- df_clean[, colnames(df_clean) != "corn_diff"]
+# Loop through each variable in vars_to_test
+for (col_name in colnames(vars_to_test)) {
+  for (lag in lag_orders) {
+  # Perform the Granger causality test
+  granger_test <- grangertest(vars_to_test[, col_name], df_clean$corn_diff, order = lag)
+  
+  # Extract the p-value from the test result
+  p_value <- c(p_value, granger_test$`Pr(>F)`[2])
+  
+  # Calculate the correlation with corn_diff
+  Correlation <- c(Correlation, cor(vars_to_test[lag:nrow(df_clean), col_name], df_clean[1:(nrow(df_clean)-lag+1), "corn_diff"]))
+  
+  # Store the variable name
+  Variable <- c(Variable, paste(col_name, lag, sep = "_"))
+
+  }
+}
+
+
+# Combine the outputs into a dataframe
+granger_results <- data.frame(Variable, Correlation, p_value)
+granger_results$p_value <- round(granger_results$p_value, digits = 3)
+granger_results$Correlation <- round(granger_results$Correlation, digits = 3)
+
+# View the resulting dataframe
+granger_results
+
+# Create the table using kable
+library(knitr)
+library(kableExtra)
+table_output <- kable(granger_results, format = "html", align = "c") %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE) %>%
+  add_header_above(c('Granger Causality Test between Corn Prices and Predictors for Lage 1, 3 and 6 Months' =3))
+
+# Print the table
+print(table_output)
+
+# Data Output #
+#install.packages("writexl")
+library(writexl)
+write_xlsx(df_clean, "df_clean.xlsx")
+
+## ------------ END TEST FOR CAUSALITY --------------- ##
+## ------------ DEEP LEARNING APPROACH --------------- ##
+library(forecast)
+head(df_clean)
+str(df_clean)
+
+model_fit <- auto.arima(df_clean[,1], stepwise=FALSE, approximation=FALSE)
+forecast_cp <- forecast(model_fit, xreg=model_fit$mean, h=12)
+forecast_cp
+
+library(lmtest)
+library(stats)
+library(dplyr)
+library(lubridate)
+library(tidyverse)
+library(forecast)
+library(readxl)
+
+d = df_clean
+
+
+
+
+#head(d)
+
+offset = 1
+temp = d$corn_diff[((offset+1):length(d$USA_Avg_Temp))] #Cut of temperature so the right offset is used
+date = d$date[(1:(length(d$date)-offset))]
+
+df1 = data.frame(date,temp) #Create dataframe with relevant data from weather dataframe
+df2 = subset(d, select = c(date,corn_diff)) #Create dataframe with relevant data from price dataframe
+
+p = merge(df1,df2,by = 'date')
+
+fit = arima(p$corn_diff,xreg = p$temp, order=c(2,0,1))
+fit
+accuracy(fit)
+
+plot(p$date,p$corn_diff,col="red", type = "l",ylab = 'Corn price',xlab = 'Date')
+lines(p$date,fitted(fit),col="blue")
+#legend(x = 5000, y=0.2, legend = c('True values','Fitted values'), col = c('red','blue'), lty=1, cex=0.8)
+
+fit2 = Arima(p$corn_diff, order=c(0,1,0))
+fit2
+accuracy(fit2)
+
+fit3 = auto.arima(p$corn_diff,xreg = p$temp)
+fit3
+
+
+
+
+
+
