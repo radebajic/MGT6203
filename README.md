@@ -1,5 +1,5 @@
 # PREDICTING COMMODITY PRICES
-## Predicting Agricultural Commodity Prices between November 1980 and February 2016 using a Deep Learning Approach with Macroeconomic and Climate Data between November 1980 and February 2016
+### Predicting Agricultural Commodity Prices between November 1980 and February 2016 using a Deep Learning Approach with Macroeconomic and Climate Data between November 1980 and February 2016
 ### Team-9
 Team 9's group project GitHub repository for MGT 6203 (Edx) Summer of 2023 semester.
 
