@@ -17,3 +17,6 @@ Secondly, in cases where the machine learning algorithms fall short in providing
 
 The findings and insights derived from this research are expected to contribute significantly to enhancing decision-making processes in the agricultural commodity sector. By better understanding how these machine learning models interact with the complex dynamics of commodity prices and external factors, stakeholders can gain valuable perspectives on how to interpret and leverage these models in practical settings. Ultimately, this study seeks to strengthen the understanding of how commodity prices relate to different exogenous variables, enabling more informed and strategic decision-making in the domain of agricultural commodities.
 
+## Usage: 
+The data is stored in the folder "Data".
+Please refer to the folder "Final Code" where you find the relevant codes for RStudio or Python and also PDFs where you can scan through our code in case you don't want to actually running it but glancing through our complete analysis.
