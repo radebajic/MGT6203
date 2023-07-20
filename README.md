@@ -1,9 +1,10 @@
-# Team-9
- Team 9's group project GitHub repository for MGT 6203 (Edx) Summer of 2023 semester.
- Authors: Rade Bajic, Eddie Morrissey, Stijn Jorissen, Nurly Kuzdikbay, David Basler
+# PREDICTING COMMODITY PRICES
+## Predicting Agricultural Commodity Prices between November 1980 and February 2016 using a Deep Learning Approach with Macroeconomic and Climate Data between November 1980 and February 2016
+### Team-9
+Team 9's group project GitHub repository for MGT 6203 (Edx) Summer of 2023 semester.
+Authors: Rade Bajic, Eddie Morrissey, Stijn Jorissen, Nurly Kuzdikbay, David Basler
 
  ![Logo Alt Text](GettyImages-1362911259.jpg)
-
 
 ## Project Description:
 This project focuses on evaluating the performance and reliability of state-of-the-art machine learning algorithms in forecasting agricultural commodity prices. Agricultural commodity prices are known for their volatility and susceptibility to various economic and environmental factors. The goal of this study is to explore whether advanced machine learning techniques can effectively predict future commodity prices, and if not, how they can still provide valuable insights to commodity traders and decision-makers.
