@@ -19,4 +19,4 @@ The findings and insights derived from this research are expected to contribute 
 
 ## Usage: 
 The data is stored in the folder "Data".
-Please refer to the folder "Final Code" where you find the relevant codes for RStudio or Python and also PDFs where you can scan through our code in case you don't want to actually running it but glancing through our complete analysis.
+Please refer to the folder "Final Code" where you find the relevant codes for RStudio or Python. You will also find PDFs where you can scan through our analysis in case you don't want to actually run the code but glance through our complete work.
