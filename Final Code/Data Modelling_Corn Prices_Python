@@ -1,0 +1,199 @@
+import sys
+print(sys.version)
+
+### Importing general libraries ###
+import numpy as np
+import pandas as pd
+import os
+
+# Load Excel file
+df = pd.read_excel('df_clean.xlsx')
+
+#create time series object
+#df.index = pd.to_datetime(df['date'])
+#df = df.drop('date', axis=1)
+df.head()
+
+## Feature selection based on granger causality test
+columns_to_keep = ['corn_diff', 'CPI_diff', 'USA_Avg_Temp', 'interaction_ps_di_diff', 'date']
+df = df[columns_to_keep]
+
+## Data Modeling
+## Feature selection based on granger causality test
+columns_to_keep = ['corn_diff', 'CPI_diff', 'USA_Avg_Temp', 'interaction_ps_di_diff', 'date']
+df = df[columns_to_keep]
+
+#Create y and Yvars
+y = df['corn_diff']
+Xvars = df.drop(columns=['corn_diff'])
+
+# create list-like items
+CPI_diff = Xvars['CPI_diff'].tolist()
+USA_Avg_Temp = Xvars['USA_Avg_Temp'].tolist()
+interaction_ps_di_diff = Xvars['interaction_ps_di_diff'].tolist()
+
+# Create forecaster
+f = Forecaster(
+    y=y,
+    current_dates=Xvars['date'],
+)
+f
+# prepare the forecast function
+f.ingest_Xvars_df(Xvars, date_col='date', use_future_dates=True) # Ingest external regressors
+f.set_test_length(48)       # 1. 48 observations to test the results
+f.generate_future_dates(48) # 2. 48 future points to forecast
+f.eval_cis(cilevel=0.95) # show confidence interval
+
+f.set_estimator('arima')
+f.manual_forecast(call_me='arima',seasonal_order=(2,1,1,12) )
+f.plot_test_set(ci=True, models='arima')
+
+f.set_estimator('lstm')
+f.manual_forecast(
+    call_me='lstm',
+    lags=1,
+    epochs=15,
+    validation_split=.2,
+    shuffle=False,)
+f.plot_test_set(ci=True, models='lstm')
+
+f.set_estimator('lstm')
+f.manual_forecast(
+    call_me='lstm_test',
+    lags=36,
+    batch_size=16,
+    epochs=300,
+    validation_split=.2,
+    shuffle=True,
+    activation='tanh',
+    optimizer='Adam',
+    learning_rate=0.001,
+    lstm_layer_sizes=(100,)*15,
+    dropout=(0,)*15,
+    plot_loss=True,
+)
+f.plot_test_set(ci=True, models='lstm')
+
+f.set_estimator('rnn')
+f.manual_forecast(
+    call_me='rnn', 
+    lags=6,
+    
+)
+f.plot_test_set(ci=True, models='rnn')
+
+import matplotlib
+matplotlib.use("nbAgg")
+%matplotlib inline
+
+f.set_estimator('silverkite')
+f.manual_forecast(
+    call_me='silverkite', 
+    
+)
+f.plot_test_set(ci=True, models='silverkite')
+
+# Evaluation
+f.export('model_summaries',determine_best_by='TestSetMAPE')[
+    ['ModelNickname',
+     'TestSetMAPE',
+     'TestSetRMSE',
+     'TestSetR2',
+     'best_model']
+]
+ts_preds = f.export('lvl_test_set_predictions')
+ts_preds.head()
+
+ts_preds['actual_move'] = ts_preds['actual'].diff()
+ts_preds['rnn_move'] = ts_preds['rnn'].diff()
+ts_preds['silverkite_move'] = ts_preds['silverkite'].diff()
+ts_preds['lstm_move'] = ts_preds['lstm'].diff()
+ts_preds['arima_move'] = ts_preds['arima'].diff()
+ts_preds = ts_preds.drop(0).reset_index(drop=True)
+ts_preds.head()
+
+ts_preds['actual_classification'] = ts_preds['actual_move'].apply(lambda x: 1 if x >= 0 else 0)
+ts_preds['rnn_classification'] = ts_preds['rnn_move'].apply(lambda x: 1 if x >= 0 else 0)
+ts_preds['silverkite_classification'] = ts_preds['silverkite_move'].apply(lambda x: 1 if x >= 0 else 0)
+ts_preds['lstm_classification'] = ts_preds['lstm_move'].apply(lambda x: 1 if x >= 0 else 0)
+ts_preds['arima_classification'] = ts_preds['arima_move'].apply(lambda x: 1 if x >= 0 else 0)
+ts_preds.head()
+
+from sklearn.metrics import confusion_matrix
+# Confusion matrix: actual vs rnn
+confusion_rnn = confusion_matrix(ts_preds['actual_classification'], ts_preds['rnn_classification'])
+print("Confusion matrix (actual vs rnn):")
+print(confusion_rnn)
+
+# Confusion matrix: actual vs silverkite
+confusion_silverkite = confusion_matrix(ts_preds['actual_classification'], ts_preds['silverkite_classification'])
+print("Confusion matrix (actual vs silverkite):")
+print(confusion_silverkite)
+
+# Confusion matrix: actual vs lstm
+confusion_lstm = confusion_matrix(ts_preds['actual_classification'], ts_preds['lstm_classification'])
+print("Confusion matrix (actual vs lstm):")
+print(confusion_lstm)
+
+# Confusion matrix: actual vs arima
+confusion_arima = confusion_matrix(ts_preds['actual_classification'], ts_preds['arima_classification'])
+print("Confusion matrix (actual vs arima):")
+print(confusion_arima)
+# Calculate evaluation metrics: actual vs mlr_default
+tn_mlr, fp_mlr, fn_mlr, tp_mlr = confusion_rnn.ravel()
+
+accuracy_rnn = (tp_mlr + tn_mlr) / (tp_mlr + tn_mlr + fp_mlr + fn_mlr)
+precision_rnn = tp_mlr / (tp_mlr + fp_mlr)
+recall_rnn = tp_mlr / (tp_mlr + fn_mlr)
+f1_score_rnn = 2 * (precision_rnn * recall_rnn) / (precision_rnn + recall_rnn)
+
+print("Evaluation metrics (actual vs rnn):")
+print("Accuracy:", accuracy_rnn)
+print("Precision:", precision_rnn)
+print("Recall:", recall_rnn)
+print("F1 Score:", f1_score_rnn)
+print("")
+# Calculate evaluation metrics: actual vs silverkit
+tn_mlr, fp_mlr, fn_mlr, tp_mlr = confusion_silverkite.ravel()
+
+accuracy_silverkite = (tp_mlr + tn_mlr) / (tp_mlr + tn_mlr + fp_mlr + fn_mlr)
+precision_silverkite = tp_mlr / (tp_mlr + fp_mlr)
+recall_silverkite = tp_mlr / (tp_mlr + fn_mlr)
+f1_score_silverkite = 2 * (precision_silverkite * recall_silverkite) / (precision_silverkite + recall_silverkite)
+
+print("Evaluation metrics (actual vs silverkit):")
+print("Accuracy:", accuracy_silverkite)
+print("Precision:", precision_silverkite)
+print("Recall:", recall_silverkite)
+print("F1 Score:", f1_score_silverkite)
+print("")
+
+# Calculate evaluation metrics: actual vs lstm
+tn_mlr, fp_mlr, fn_mlr, tp_mlr = confusion_lstm.ravel()
+
+accuracy_lstm = (tp_mlr + tn_mlr) / (tp_mlr + tn_mlr + fp_mlr + fn_mlr)
+precision_lstm = tp_mlr / (tp_mlr + fp_mlr)
+recall_lstm = tp_mlr / (tp_mlr + fn_mlr)
+f1_score_lstm = 2 * (precision_lstm * recall_lstm) / (precision_lstm + recall_lstm)
+
+print("Evaluation metrics (actual vs lstm):")
+print("Accuracy:", accuracy_lstm)
+print("Precision:", precision_lstm)
+print("Recall:", recall_lstm)
+print("F1 Score:", f1_score_lstm)
+print("")
+
+# Calculate evaluation metrics: actual vs arima
+tn_mlr, fp_mlr, fn_mlr, tp_mlr = confusion_arima.ravel()
+
+accuracy_arima = (tp_mlr + tn_mlr) / (tp_mlr + tn_mlr + fp_mlr + fn_mlr)
+precision_arima = tp_mlr / (tp_mlr + fp_mlr)
+recall_arima = tp_mlr / (tp_mlr + fn_mlr)
+f1_score_arima = 2 * (precision_arima * recall_arima) / (precision_arima + recall_arima)
+
+print("Evaluation metrics (actual vs arima):")
+print("Accuracy:", accuracy_arima)
+print("Precision:", precision_arima)
+print("Recall:", recall_arima)
+print("F1 Score:", f1_score_arima)
+print("")
