@@ -18,7 +18,7 @@ library(zoo)
 #set torch options
 options(torch.threshold_call_gc = 6000)
 
-#read comodity prices and convert to proper format
+#read commodity prices and convert to a proper format
 com_prices_data = read.csv("commodity-prices-2016.csv")
 com_prices_data = select(com_prices_data, Date, Crude.Oil.petroleum,Aluminum,Bananas,Barley,Beef,Coal,Cocoa.beans,Coffee.Other.Mild.Arabicas,Coffee.Robusta,Rapeseed.oil,Copper,Cotton,Fishmeal,Groundnuts.peanuts,Hides,Lamb,Lead,Soft.Logs,Hard.Logs,Maize.corn,Olive.Oil,Oranges,Palm.oil,Poultry.chicken,Rice,Rubber,Fish.salmon,Hard.Sawnwood,Soft.Sawnwood,Shrimp,Soybean.Meal,Soybean.Oil,Soybeans,Sunflower.oil,Tea,Tin,Uranium,Wheat)
 com_prices_data$Date = as.Date(com_prices_data$Date, format = "%Y-%m-%d")
@@ -49,14 +49,14 @@ tt_p = com_prices_data3
 tt = tt_p[,-(3:4)]
 colnames(tt)[1] = "date"
 
-#build train, validate and test samples
+#build, train, validate and test samples
 last_date <- max(tt$date)
 train <- tt %>% filter(date <= (last_date - lubridate::weeks(48)))
 valid <- tt %>% filter(date > (last_date - lubridate::weeks(48)),
                                 date <= (last_date - lubridate::weeks(12)))
 test <- tt %>% filter(date > (last_date - lubridate::weeks(12)))
 
-#create recepie for data preprocessing & create "known" variables from date-index values
+#create recipe for data preprocessing & create "known" variables from date-index values
 rec <- recipe(Price ~ ., data = train) %>% 
   step_mutate(
     time_since_begining = as.numeric(difftime(
@@ -70,7 +70,7 @@ rec <- recipe(Price ~ ., data = train) %>%
   ) %>% 
   step_normalize(all_numeric_predictors())
 
-#specify cathegories of variables to be injested 
+#specify categories of variables to be ingested 
 spec <- tft_dataset_spec(rec, train) %>% 
   spec_covariate_index(date) %>%
   spec_covariate_key(Commodity) %>%
@@ -78,7 +78,7 @@ spec <- tft_dataset_spec(rec, train) %>%
   spec_time_splits(lookback = 5*3, horizon = 6)
 spec <- prep(spec)
 
-#create model object
+#create a model object
 model <- temporal_fusion_transformer(
   spec,
   hidden_state_size = 8,
@@ -128,11 +128,11 @@ fitted %>%
 metrics2 <- get_metrics(eval)
 metrics2
 
-#forecast with time horizont starting after last validation date
+#forecast with time horizons starting after last validation date
 forecasts <- generics::forecast(fitted, past_data = bind_rows(train, valid))
 as.data.frame(forecasts)
 
-#plot forecastig results
+#plot forecasting results
 options(repr.plot.width = 15, repr.plot.height =15)
 tt %>% 
   filter(date > lubridate::ymd("2015-01-01")) %>% 
